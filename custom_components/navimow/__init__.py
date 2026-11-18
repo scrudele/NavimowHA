@@ -112,13 +112,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             devices = await api.async_get_devices()
             _LOGGER.info("Discovered %d Navimow device(s)", len(devices))
         except MowerAPIError as err:
+            if err.status_code == 401:
+                raise ConfigEntryAuthFailed("Navimow rejected the access token") from err
             _LOGGER.error("Failed to discover devices: %s", err)
             raise ConfigEntryNotReady(f"Failed to discover devices: {err}") from err
-        except ConfigEntryAuthFailed:
-            raise
-        except Exception as err:
-            _LOGGER.error("Authentication failed during device discovery: %s", err)
-            raise ConfigEntryAuthFailed(f"Authentication failed: {err}") from err
 
         if not devices:
             _LOGGER.warning("No Navimow devices found")
@@ -127,6 +124,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             mqtt_info = await api.async_get_mqtt_user_info()
         except MowerAPIError as err:
+            if err.status_code == 401:
+                raise ConfigEntryAuthFailed("Navimow rejected the access token") from err
             _LOGGER.error("Failed to get MQTT info: %s", err)
             raise ConfigEntryNotReady(f"Failed to get MQTT info: {err}") from err
 
